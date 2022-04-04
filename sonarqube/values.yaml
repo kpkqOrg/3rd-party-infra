@@ -41,19 +41,18 @@ elasticsearch:
   bootstrapChecks: true
 
 service:
+  name: sonarqube
   type: LoadBalancer
-  port: 8080
-  targetPort: 8080
-  nodePort: 30002
+  externalPort: 9000
+  internalPort: 9000
   labels:
   annotations: {}
   # May be used in example for internal load balancing in GCP:
   # cloud.google.com/load-balancer-type: Internal
-  # loadBalancerSourceRanges:
-  #   - 0.0.0.0/0
+  loadBalancerSourceRanges:
+  - 0.0.0.0/0
   # loadBalancerIP: 1.2.3.4
-  # You can set the port to be exposed when type is NodePort or LoadBalancer.
-  # nodePort: 30000
+
 ingress:
   enabled: false
   # Used to create an Ingress record.
