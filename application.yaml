@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sonarqube
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/kpkqOrg/3rd-party-infra.git
+    targetRevision: HEAD
+    path: sonarqube
+  destination: 
+    server: https://kubernetes.default.svc
+    namespace: sonarqube
+
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+
+    automated:
+      selfHeal: true
+      prune: true

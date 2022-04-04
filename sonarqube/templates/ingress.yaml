@@ -1,11 +1,13 @@
 {{- if .Values.ingress.enabled -}}
 {{- $serviceName := include "sonarqube.fullname" . -}}
 {{- $servicePort := .Values.service.externalPort -}}
-{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1beta1" }}
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1" -}}
+apiVersion: networking.k8s.io/v1
+{{- else if .Capabilities.APIVersions.Has "networking.k8s.io/v1beta1" -}}
 apiVersion: networking.k8s.io/v1beta1
-{{ else }}
+{{- else -}}
 apiVersion: extensions/v1beta1
-{{ end -}}
+{{- end }}
 kind: Ingress
 metadata:
   name: {{ template "sonarqube.fullname" . }}
@@ -24,20 +26,37 @@ metadata:
     {{- end }}
 {{- end }}
 spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.annotations }}
+  {{- range $key, $value := .Values.ingress.annotations }}
+  {{- if and (eq $key "kubernetes.io/ingress.class") (contains $value "gce") }}
+  backend:
+    serviceName: {{ default $serviceName .serviceName }}
+    servicePort: {{ default $servicePort .servicePort }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
-    {{- $path := default "/" .path }}
     - host: {{ .name }}
       http:
         paths:
-          - path: {{ $path }}
+          - path: {{ .path }}
+            {{- if $.Capabilities.APIVersions.Has "networking.k8s.io/v1" }}
+            pathType: {{ .pathType | default "Prefix" }} 
+            {{- end }}
             backend:
-              serviceName: {{ $serviceName }}
-              servicePort: {{ $servicePort }}
-          - path: {{ printf "%s/*" (trimSuffix "/" $path) }}
-            backend:
-              serviceName: {{ $serviceName }}
-              servicePort: {{ $servicePort }}
+              {{- if $.Capabilities.APIVersions.Has "networking.k8s.io/v1" }}
+              service:
+                name: {{ default $serviceName .serviceName }}
+                port:
+                  number: {{ default $servicePort .servicePort }}
+              {{- else }}
+              serviceName: {{ default $serviceName .serviceName }}
+              servicePort: {{ default $servicePort .servicePort }}
+              {{- end }}
     {{- end -}}
   {{- if .Values.ingress.tls }}
   tls:
